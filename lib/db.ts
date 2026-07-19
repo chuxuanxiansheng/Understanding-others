@@ -1,5 +1,4 @@
 import { getSupabase } from "./supabase";
-import crypto from "crypto";
 
 function db(table: string) {
   return getSupabase().from(table as any) as any;
@@ -40,7 +39,7 @@ export async function createSession(
     .select("id")
     .single();
 
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("创建会话失败: " + error.message);
   return data.id;
 }
 
@@ -59,14 +58,13 @@ export async function saveAnswers(
   sessionId: string
 ) {
   const rows = answersArr.map((a) => ({
-    id: crypto.randomUUID(),
     session_id: sessionId,
     question_id: a.questionId,
     chosen: a.chosen,
   }));
 
   const { error } = await db("answers").insert(rows);
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("保存答案失败: " + error.message);
 }
 
 export async function getAnswers(sessionId: string): Promise<AnswerRow[]> {
@@ -74,7 +72,7 @@ export async function getAnswers(sessionId: string): Promise<AnswerRow[]> {
     .select("*")
     .eq("session_id", sessionId);
 
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("获取答案失败: " + error.message);
   return (data || []) as AnswerRow[];
 }
 
@@ -83,7 +81,7 @@ export async function deleteCorrections(sessionId: string) {
     .delete()
     .eq("session_id", sessionId);
 
-  if (error) throw new Error("????????: " + error.message);
+  if (error) throw new Error("删除纠错失败: " + error.message);
 }
 
 export async function saveCorrections(
@@ -91,7 +89,6 @@ export async function saveCorrections(
   sessionId: string
 ) {
   const rows = correctionsArr.map((c) => ({
-    id: crypto.randomUUID(),
     session_id: sessionId,
     question_id: c.questionId,
     is_correct: c.isCorrect,
@@ -100,7 +97,7 @@ export async function saveCorrections(
   }));
 
   const { error } = await db("corrections").insert(rows);
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("保存纠错失败: " + error.message);
 }
 
 export async function getCorrections(sessionId: string): Promise<CorrectionRow[]> {
@@ -108,7 +105,7 @@ export async function getCorrections(sessionId: string): Promise<CorrectionRow[]
     .select("*")
     .eq("session_id", sessionId);
 
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("获取纠错失败: " + error.message);
   return (data || []) as CorrectionRow[];
 }
 
@@ -117,5 +114,5 @@ export async function completeSession(sessionId: string) {
     .update({ completed_at: new Date().toISOString() })
     .eq("id", sessionId);
 
-  if (error) throw new Error("??????: " + error.message);
+  if (error) throw new Error("完成会话失败: " + error.message);
 }

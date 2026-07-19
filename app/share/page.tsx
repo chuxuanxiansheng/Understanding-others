@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function SharePage() {
-  const params = useParams();
-  const sessionId = params.sessionId as string;
+function SharePageContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("sessionId") || "";
   const [copied, setCopied] = useState(false);
   const [link, setLink] = useState("");
 
   useEffect(() => {
-    setLink(`${window.location.origin}/correct/${sessionId}`);
+    setLink(window.location.origin + "/correct?sessionId=" + sessionId);
   }, [sessionId]);
 
   const handleCopy = async () => {
@@ -44,7 +44,7 @@ export default function SharePage() {
           />
         </div>
         <button onClick={handleCopy} className="btn-primary w-full">
-          {copied ? "✓ 已复制！" : "复制链接"}
+          {copied ? "✅ 已复制！" : "复制链接"}
         </button>
       </div>
 
@@ -58,4 +58,8 @@ export default function SharePage() {
       </div>
     </div>
   );
+}
+
+export default function SharePage() {
+  return <Suspense fallback={<div className="text-center py-20 text-gray-500">加载中...</div>}><SharePageContent /></Suspense>;
 }

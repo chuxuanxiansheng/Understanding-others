@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,8 +15,10 @@ export default function Home() {
 
   const handleStart = () => {
     const params = new URLSearchParams();
+    params.set("setId", selectedSet);
+    params.set("mode", selectedMode);
     if (name.trim()) params.set("name", name.trim());
-    router.push(`/quiz/${selectedSet}/${selectedMode}?${params.toString()}`);
+    router.push("/quiz?" + params.toString());
   };
 
   return (
@@ -39,11 +41,10 @@ export default function Home() {
           <button
             key={id}
             onClick={() => setSelectedSet(id)}
-            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-              selectedSet === id
+            className={"w-full text-left p-4 rounded-xl border-2 transition-all " +
+              (selectedSet === id
                 ? "border-pink-500 bg-pink-50 shadow-md"
-                : "border-gray-200 hover:border-pink-300"
-            }`}
+                : "border-gray-200 hover:border-pink-300")}
           >
             <div className="font-semibold text-lg">{qs.name}</div>
             <div className="text-sm text-gray-500 mt-1">{qs.description}</div>
@@ -59,16 +60,15 @@ export default function Home() {
             <button
               key={mode}
               onClick={() => setSelectedMode(mode)}
-              className={`p-4 rounded-xl border-2 text-center transition-all ${
-                selectedMode === mode
+              className={"p-4 rounded-xl border-2 text-center transition-all " +
+                (selectedMode === mode
                   ? "border-pink-500 bg-pink-50 shadow-md"
-                  : "border-gray-200 hover:border-pink-300"
-              }`}
+                  : "border-gray-200 hover:border-pink-300")}
             >
               <div className="text-2xl mb-1">
-                {mode === "easy" ? "🌱" : mode === "medium" ? "🌿" : "🌳"}
+                {mode === "easy" ? "\u{1F331}" : mode === "medium" ? "\u{1F33F}" : "\u{1F333}"}
               </div>
-              <div className="font-medium text-sm">{info.label.split("·")[0].trim()}</div>
+              <div className="font-medium text-sm">{info.label.split(" ")[0].trim()}</div>
               <div className="text-xs text-gray-400 mt-1">{info.count}题</div>
             </button>
           ))}

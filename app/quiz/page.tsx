@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useState, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { questionSets } from "@/lib/questions";
+import { createSession, saveAnswers } from "@/lib/db";
 
-export default function QuizPage() {
-  const params = useParams();
+function generateToken(): string {
+  const arr = new Uint8Array(12);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function QuizContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const setId = params.setId as string;
-  const mode = params.mode as string;
+  const setId = searchParams.get("setId") || "friendship";
+  const mode = searchParams.get("mode") || "medium";
   const name = searchParams.get("name") || "";
 
   const set = questionSets[setId];
@@ -23,12 +29,15 @@ export default function QuizPage() {
   const current = questions[currentIndex];
   const progress = (currentIndex / questions.length) * 100;
 
-  const handleSelect = useCallback((option: string) => {
-    setAnswers((prev) => ({ ...prev, [current.id]: option }));
-    if (currentIndex < questions.length - 1) {
-      setTimeout(() => setCurrentIndex((i) => i + 1), 200);
-    }
-  }, [current?.id, currentIndex, questions.length]);
+  const handleSelect = useCallback(
+    (option: string) => {
+      setAnswers((prev) => ({ ...prev, [current.id]: option }));
+      if (currentIndex < questions.length - 1) {
+        setTimeout(() => setCurrentIndex((i) => i + 1), 200);
+      }
+    },
+    [current?.id, currentIndex, questions.length]
+  );
 
   const goBack = () => {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
@@ -37,21 +46,20 @@ export default function QuizPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          setId,
-          mode,
-          guesserName: name || "好友",
-          answers: Object.entries(answers).map(([questionId, chosen]) => ({
-            questionId,
-            chosen,
-          })),
-        }),
-      });
-      const data = await res.json();
-      router.push(`/share/${data.sessionId}`);
+      const shareToken = generateToken();
+      const sessionId = await createSession(
+        setId + ":" + mode,
+        name || "好友",
+        shareToken
+      );
+      await saveAnswers(
+        Object.entries(answers).map(([questionId, chosen]) => ({
+          questionId,
+          chosen,
+        })),
+        sessionId
+      );
+      router.push("/share?sessionId=" + sessionId);
     } catch {
       alert("提交失败，请重试");
       setSubmitting(false);
@@ -63,10 +71,12 @@ export default function QuizPage() {
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-gray-500">
           <span>{set.name}</span>
-          <span>{currentIndex + 1} / {questions.length}</span>
+          <span>
+            {currentIndex + 1} / {questions.length}
+          </span>
         </div>
         <div className="progress-bar">
-          <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+          <div className="progress-bar-fill" style={{ width: progress + "%" }} />
         </div>
       </div>
 
@@ -86,10 +96,12 @@ export default function QuizPage() {
               <button
                 key={key}
                 onClick={() => handleSelect(key)}
-                className={`option-btn ${answers[current.id] === key ? "selected" : ""}`}
+                className={"option-btn " + (answers[current.id] === key ? "selected" : "")}
               >
-                <span className="font-medium mr-2" style={{ color: "var(--primary)" }}>{key}</span>
-                {current[`option${key}` as keyof typeof current]}
+                <span className="font-medium mr-2" style={{ color: "var(--primary)" }}>
+                  {key}
+                </span>
+                {current["option" + key as keyof typeof current]}
               </button>
             ))}
           </div>
@@ -117,4 +129,8 @@ export default function QuizPage() {
       </div>
     </div>
   );
+}
+
+export default function QuizPage() {
+  return <Suspense fallback={<div className="text-center py-20 text-gray-500">加载中...</div>}><QuizContent /></Suspense>;
 }
